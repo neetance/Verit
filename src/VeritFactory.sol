@@ -2,39 +2,49 @@
 pragma solidity ^0.8.20;
 
 import {VeritInstance} from "./VeritInstance.sol";
+import {VeritPool} from "./VeritPool.sol";
 
 contract VeritFactory {
-    error Value_Not_Equal_To_Payment();
-    error Error_Sending_Funds();
-    error Invalid_Freelancer_Address();
-    error Invalid_Payment_Amount();
+    error Insufficient_Premium_Amount();
 
-    event NewInstance(
-        address indexed employer,
-        address indexed freelancer,
-        uint256 pay,
-        address instanceAddress
+    event NewInstanceCreated(
+        address indexed instance,
+        address indexed holder,
+        uint256 premium
     );
 
-    function createNewInstance(
-        address freelancer,
-        uint256 payment
-    ) external payable {
-        if (msg.value != payment) revert Value_Not_Equal_To_Payment();
-        if (freelancer == address(0)) revert Invalid_Freelancer_Address();
-        if (payment <= 0) revert Invalid_Payment_Amount();
+    VeritPool pool;
 
-        VeritInstance newInstance = new VeritInstance(
+    uint256 private MAX_PREMIUM = 0.7 ether;
+    uint256 private MIN_PREMIUM = 0.3 ether;
+
+    constructor(address poolAddr) {
+        pool = VeritPool(poolAddr);
+    }
+
+    function newInstance() public payable returns (address) {
+        if (msg.value < getPremium()) revert Insufficient_Premium_Amount();
+
+        VeritInstance instance = new VeritInstance(
             msg.sender,
-            freelancer,
-            payment
+            msg.value,
+            block.timestamp + 90 days
         );
+        payable(address(pool)).transfer(msg.value);
+        emit NewInstanceCreated(address(instance), msg.sender, msg.value);
 
-        (bool success, ) = payable(address(newInstance)).call{value: payment}(
-            ""
-        );
-        if (!success) revert Error_Sending_Funds();
+        return address(instance);
+    }
 
-        emit NewInstance(msg.sender, freelancer, payment, address(newInstance));
+    function getPremium() public view returns (uint256) {
+        uint256 base = pool.Base(); // base currently set to 5
+        uint256 totalLiquidity = pool.getTotalLiquidity();
+        uint256 targetLiquidity = pool.Target();
+
+        uint256 premium = (base * targetLiquidity) / (10 * totalLiquidity); // 0.5 * (target / totalLiquidity)
+        if (premium > MAX_PREMIUM) premium = MAX_PREMIUM;
+        if (premium < MIN_PREMIUM) premium = MIN_PREMIUM;
+
+        return premium;
     }
 }
