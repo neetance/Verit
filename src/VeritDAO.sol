@@ -49,17 +49,18 @@ contract VeritDAO is Ownable {
         _;
     }
 
-    function voteFor() public onlyDAOMember(msg.sender) ongoing {
+    modifier notVoted() {
         if (hasVoted[msg.sender]) revert Can_Only_Vote_Once();
+        _;
+    }
 
+    function voteFor() public onlyDAOMember(msg.sender) ongoing notVoted {
         hasVoted[msg.sender] = true;
         uint256 balance = IERC20(pool).balanceOf(msg.sender);
         posVotes += balance;
     }
 
-    function voteAgainst() public onlyDAOMember(msg.sender) ongoing {
-        if (hasVoted[msg.sender]) revert Can_Only_Vote_Once();
-
+    function voteAgainst() public onlyDAOMember(msg.sender) ongoing notVoted {
         hasVoted[msg.sender] = true;
         uint256 balance = IERC20(pool).balanceOf(msg.sender);
         negVotes += balance;
