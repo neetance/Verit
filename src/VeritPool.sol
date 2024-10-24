@@ -8,6 +8,7 @@ contract VeritPool is ERC20 {
     error Amount_To_Remove_Greater_Than_Balance();
 
     event LiquidityAdded(address indexed provider, uint256 liquidityAmount);
+    event LiquidityRemoved(address indexed provider, uint256 liquidityAmount);
 
     uint256 private BASE = 5;
     uint256 private TARGET = 1000;
@@ -29,6 +30,8 @@ contract VeritPool is ERC20 {
 
         _burn(msg.sender, amount);
         payable(msg.sender).transfer(amount);
+
+        emit LiquidityRemoved(msg.sender, amount);
     }
 
     function Base() public view returns (uint256) {
