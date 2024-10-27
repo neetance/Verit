@@ -24,6 +24,8 @@ contract PayoutManager {
         uint256 impactLoss,
         uint256 severityScore,
         uint256 posVotes,
+        address[] memory voters,
+        uint256 totalVotes,
         address instanceAddr
     ) public {
         VeritFactory factory = VeritFactory(factoryAddr);
@@ -35,8 +37,11 @@ contract PayoutManager {
         uint256 severityFactor = severityScore / posVotes;
         if (severityScore % posVotes > posVotes / 2) severityFactor++;
 
-        uint256 payoutAmount = impactLoss * severityFactor;
+        uint256 payoutAmount = (impactLoss * severityFactor * 1e18) / 5;
+        uint256 votersCut = payoutAmount / 20;
+        uint256 totalVotersCut = votersCut / totalVotes;
+
         VeritPool pool = VeritPool(poolAddr);
-        pool.transferPayout(to, payoutAmount);
+        pool.transferPayout(to, payoutAmount, voters, totalVotersCut);
     }
 }

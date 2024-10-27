@@ -107,6 +107,8 @@ contract VeritDAO is Ownable {
                 impactLoss,
                 severityScore,
                 posVotes,
+                voters,
+                posVotes + negVotes,
                 instance
             );
 

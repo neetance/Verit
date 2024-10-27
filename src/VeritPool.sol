@@ -40,11 +40,27 @@ contract VeritPool is ERC20 {
         emit LiquidityRemoved(msg.sender, amount);
     }
 
-    function transferPayout(address to, uint256 amount) external {
+    function transferPayout(
+        address to,
+        uint256 amount,
+        address[] memory voters,
+        uint256 totalVotersCut
+    ) external {
         if (msg.sender != payoutManager) revert Not_Allowed();
 
-        payable(to).transfer(amount);
-        emit PayoutTransferred(to, amount);
+        if (amount > ((address(this).balance * 1e18) / 10))
+            amount = ((address(this).balance * 1e18) / 10);
+
+        for (uint256 i = 0; i < voters.length; i++) {
+            uint256 amountToTransfer = (balanceOf(voters[i]) * totalVotersCut);
+            amount -= amountToTransfer;
+
+            payable(voters[i]).transfer((amountToTransfer / 1e18));
+        }
+        uint256 netAmount = amount / 1e18;
+
+        payable(to).transfer(netAmount);
+        emit PayoutTransferred(to, netAmount);
     }
 
     function setPayoutManager(address _payoutManager) external {
