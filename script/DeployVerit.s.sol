@@ -21,6 +21,7 @@ contract DeployVerit is Script {
 
         factory.setPool(address(pool));
         factory.setPayoutManager(address(payoutManager));
+        pool.setPayoutManager(address(payoutManager));
 
         return (pool, factory, payoutManager);
     }
