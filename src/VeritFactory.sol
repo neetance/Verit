@@ -18,13 +18,11 @@ contract VeritFactory {
     uint256 private MAX_PREMIUM = 0.7 ether;
     uint256 private MIN_PREMIUM = 0.3 ether;
     address payoutManager;
+    address poolAddr;
 
     mapping(address => bool) instances;
 
-    constructor(address poolAddr, address payoutManagerAddr) {
-        pool = VeritPool(poolAddr);
-        payoutManager = payoutManagerAddr;
-    }
+    constructor() {}
 
     function newInstance() public payable returns (address) {
         if (msg.value < getPremium()) revert Insufficient_Premium_Amount();
@@ -56,5 +54,13 @@ contract VeritFactory {
 
     function isInstance(address instance) public view returns (bool) {
         return instances[instance];
+    }
+
+    function setPool(address _poolAddr) public {
+        pool = VeritPool(_poolAddr);
+    }
+
+    function setPayoutManager(address _payoutManager) public {
+        payoutManager = _payoutManager;
     }
 }
