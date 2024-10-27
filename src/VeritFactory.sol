@@ -17,9 +17,13 @@ contract VeritFactory {
 
     uint256 private MAX_PREMIUM = 0.7 ether;
     uint256 private MIN_PREMIUM = 0.3 ether;
+    address payoutManager;
 
-    constructor(address poolAddr) {
+    mapping(address => bool) instances;
+
+    constructor(address poolAddr, address payoutManagerAddr) {
         pool = VeritPool(poolAddr);
+        payoutManager = payoutManagerAddr;
     }
 
     function newInstance() public payable returns (address) {
@@ -28,11 +32,13 @@ contract VeritFactory {
         VeritInstance instance = new VeritInstance(
             msg.sender,
             msg.value,
-            block.timestamp + 90 days
+            block.timestamp + 90 days,
+            payoutManager
         );
         payable(address(pool)).transfer(msg.value);
         emit NewInstanceCreated(address(instance), msg.sender, msg.value);
 
+        instances[address(instance)] = true;
         return address(instance);
     }
 
@@ -46,5 +52,9 @@ contract VeritFactory {
         if (premium < MIN_PREMIUM) premium = MIN_PREMIUM;
 
         return premium;
+    }
+
+    function isInstance(address instance) public view returns (bool) {
+        return instances[instance];
     }
 }

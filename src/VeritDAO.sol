@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {IERC20} from "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {Ownable} from "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import {PayoutManager} from "./PayoutManager.sol";
 
 contract VeritDAO is Ownable {
     error Must_Be_DAO_Member();
@@ -22,6 +23,8 @@ contract VeritDAO is Ownable {
 
     address public claimer;
     address pool;
+    address instance;
+    address payoutManagerAddr;
     address[] public voters;
 
     mapping(address => bool) hasVoted;
@@ -37,6 +40,7 @@ contract VeritDAO is Ownable {
     constructor(
         address _claimer,
         address poolAddr,
+        address _payoutManagerAddr,
         uint256 _impactLoss
     ) Ownable(msg.sender) {
         claimer = _claimer;
@@ -48,6 +52,8 @@ contract VeritDAO is Ownable {
         negVotes = 0;
         severityScore = 0;
         impactLoss = _impactLoss;
+        instance = msg.sender;
+        payoutManagerAddr = _payoutManagerAddr;
     }
 
     modifier onlyDAOMember(address voter) {
@@ -95,6 +101,15 @@ contract VeritDAO is Ownable {
             return false;
         } else {
             state = State.APPROVED;
+            PayoutManager payoutManager = PayoutManager(payoutManagerAddr);
+            payoutManager.executePayout(
+                claimer,
+                impactLoss,
+                severityScore,
+                posVotes,
+                instance
+            );
+
             return true;
         }
     }

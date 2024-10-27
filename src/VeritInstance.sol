@@ -10,17 +10,24 @@ contract VeritInstance {
 
     address private immutable holder;
     address pool;
+    address payoutManager;
     uint256 private immutable premium;
     uint256 private immutable deadline;
     bool public claimed;
 
     VeritDAO dao;
 
-    constructor(address _holder, uint256 _premium, uint256 _deadline) {
+    constructor(
+        address _holder,
+        uint256 _premium,
+        uint256 _deadline,
+        address _payoutManager
+    ) {
         holder = _holder;
         premium = _premium;
         deadline = _deadline;
         claimed = false;
+        payoutManager = _payoutManager;
     }
 
     modifier onlyHolder() {
@@ -36,7 +43,7 @@ contract VeritInstance {
             revert DeadlinePassed();
         }
 
-        dao = new VeritDAO(holder, pool, lossAmount);
+        dao = new VeritDAO(holder, pool, payoutManager, lossAmount);
         return address(dao);
     }
 
