@@ -41,7 +41,7 @@ contract PayoutManager {
         uint256 votersCut = payoutAmount / 20;
         uint256 totalVotersCut = votersCut / totalVotes;
 
-        VeritPool pool = VeritPool(poolAddr);
+        VeritPool pool = VeritPool(payable(poolAddr));
         pool.transferPayout(to, payoutAmount, voters, totalVotersCut);
     }
 }

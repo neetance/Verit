@@ -56,11 +56,11 @@ contract VeritFactory {
         return instances[instance];
     }
 
-    function setPool(address _poolAddr) public {
-        pool = VeritPool(_poolAddr);
+    function setPool(address _poolAddr) external {
+        pool = VeritPool(payable(_poolAddr));
     }
 
-    function setPayoutManager(address _payoutManager) public {
+    function setPayoutManager(address _payoutManager) external {
         payoutManager = _payoutManager;
     }
 }

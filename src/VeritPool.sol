@@ -12,8 +12,8 @@ contract VeritPool is ERC20 {
     event LiquidityRemoved(address indexed provider, uint256 liquidityAmount);
     event PayoutTransferred(address indexed to, uint256 amount);
 
-    uint256 private BASE = 5;
-    uint256 private TARGET = 1000;
+    uint256 private BASE = 5 ether;
+    uint256 private TARGET = 1000 ether;
     address payoutManager;
     address factory;
 
@@ -79,4 +79,6 @@ contract VeritPool is ERC20 {
     function getTotalLiquidity() public view returns (uint256) {
         return address(this).balance;
     }
+
+    receive() external payable {}
 }
