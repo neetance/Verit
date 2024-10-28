@@ -21,13 +21,15 @@ contract VeritInstance {
         address _holder,
         uint256 _premium,
         uint256 _deadline,
-        address _payoutManager
+        address _payoutManager,
+        address _pool
     ) {
         holder = _holder;
         premium = _premium;
         deadline = _deadline;
         claimed = false;
         payoutManager = _payoutManager;
+        pool = _pool;
     }
 
     modifier onlyHolder() {

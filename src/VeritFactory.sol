@@ -31,7 +31,8 @@ contract VeritFactory {
             msg.sender,
             msg.value,
             block.timestamp + 90 days,
-            payoutManager
+            payoutManager,
+            address(pool)
         );
         payable(address(pool)).transfer(msg.value);
         emit NewInstanceCreated(address(instance), msg.sender, msg.value);

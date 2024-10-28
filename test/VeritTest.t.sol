@@ -78,4 +78,62 @@ contract VeritTest is Test {
         assertEq(claimer, user);
         assertEq(dao.impactLoss(), 5);
     }
+
+    function testVotingInDAOandClaimerGetsPayout() external {
+        for (uint256 i = 48; i <= 62; i++) {
+            vm.deal(address(uint160(i)), 5 ether);
+            vm.prank(address(uint160(i)));
+            pool.addLiquidity{value: 4 ether}();
+        }
+
+        uint256 premium = factory.getPremium();
+        address user = address(uint160(1000));
+        vm.deal(user, premium);
+        vm.prank(user);
+
+        VeritInstance instance = VeritInstance(
+            factory.newInstance{value: premium}()
+        );
+        // console.log(address(pool).balance);
+        // console.log(address(51).balance);
+
+        vm.prank(user);
+        address daoAddr = instance.claim(5 ether);
+        VeritDAO dao = VeritDAO(daoAddr);
+
+        vm.expectRevert(VeritDAO.Must_Be_DAO_Member.selector);
+        vm.prank(address(70));
+        dao.voteFor(3);
+
+        for (uint256 i = 2; i <= 6; i++) {
+            vm.prank(address(uint160(46 + i)));
+            dao.voteAgainst();
+        }
+
+        for (uint256 i = 7; i <= 9; i++) {
+            vm.prank(address(uint160(46 + i)));
+            dao.voteFor(3);
+        }
+
+        for (uint256 i = 10; i <= 12; i++) {
+            vm.prank(address(uint160(46 + i)));
+            dao.voteFor(2);
+        }
+
+        for (uint256 i = 13; i <= 16; i++) {
+            vm.prank(address(uint160(46 + i)));
+            dao.voteFor(4);
+        }
+
+        vm.expectRevert(VeritDAO.Can_Only_Vote_Once.selector);
+        vm.prank(address(uint160(48)));
+        dao.voteAgainst();
+
+        vm.warp(dao.deadline() + 10 minutes);
+        vm.prank(address(instance));
+        bool result = dao.execute();
+
+        assert(result);
+        console.log(address(user).balance);
+    }
 }

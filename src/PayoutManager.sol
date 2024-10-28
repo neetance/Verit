@@ -37,8 +37,8 @@ contract PayoutManager {
         uint256 severityFactor = severityScore / posVotes;
         if (severityScore % posVotes > posVotes / 2) severityFactor++;
 
-        uint256 payoutAmount = (impactLoss * severityFactor * 1e18) / 5;
-        uint256 votersCut = payoutAmount / 20;
+        uint256 payoutAmount = (impactLoss * severityFactor) / 5;
+        uint256 votersCut = payoutAmount / 25;
         uint256 totalVotersCut = votersCut / totalVotes;
 
         VeritPool pool = VeritPool(payable(poolAddr));

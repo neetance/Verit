@@ -20,6 +20,7 @@ contract VeritDAO is Ownable {
     uint256 public negVotes;
     uint256 public severityScore;
     uint256 public impactLoss;
+    uint256 public numPosVotes;
 
     address public claimer;
     address pool;
@@ -76,8 +77,9 @@ contract VeritDAO is Ownable {
     ) public onlyDAOMember(msg.sender) ongoing notVoted {
         hasVoted[msg.sender] = true;
         uint256 balance = IERC20(pool).balanceOf(msg.sender);
-        posVotes += balance;
+        posVotes += balance / 1e18;
         severityScore += severity;
+        numPosVotes++;
 
         voters.push(msg.sender);
         emit NewVote(msg.sender, severity, true);
@@ -86,7 +88,7 @@ contract VeritDAO is Ownable {
     function voteAgainst() public onlyDAOMember(msg.sender) ongoing notVoted {
         hasVoted[msg.sender] = true;
         uint256 balance = IERC20(pool).balanceOf(msg.sender);
-        negVotes += balance;
+        negVotes += balance / 1e18;
 
         voters.push(msg.sender);
         emit NewVote(msg.sender, 0, false);
@@ -106,7 +108,7 @@ contract VeritDAO is Ownable {
                 claimer,
                 impactLoss,
                 severityScore,
-                posVotes,
+                numPosVotes,
                 voters,
                 posVotes + negVotes,
                 instance
