@@ -33,6 +33,26 @@ contract VeritTest is Test {
         //console.log(pool.balanceOf(address(2)));
     }
 
+    function testRemovingLiquidity() external {
+        address provider = address(uint160(100));
+        vm.deal(provider, 2 ether);
+        vm.prank(provider);
+        pool.addLiquidity{value: 1 ether}();
+
+        assertEq(provider.balance, 1 ether);
+        vm.expectRevert(
+            VeritPool.Amount_To_Remove_Greater_Than_Balance.selector
+        );
+        vm.prank(provider);
+        pool.removeLiquidity(2 ether);
+
+        vm.prank(provider);
+        pool.removeLiquidity(0.6 ether);
+
+        assertEq(provider.balance, 1.6 ether);
+        assertEq(pool.getTotalLiquidity(), 0.4 ether);
+    }
+
     function testCreatingInstance() external {
         for (uint256 i = 1; i <= 520; i++) {
             vm.deal(address(uint160(i)), 5 ether);
@@ -79,11 +99,11 @@ contract VeritTest is Test {
         assertEq(dao.impactLoss(), 5);
     }
 
-    function testVotingInDAOandClaimerGetsPayout() external {
-        for (uint256 i = 48; i <= 62; i++) {
-            vm.deal(address(uint160(i)), 5 ether);
+    function testOnlyDAOMembersCanVote() external {
+        for (uint256 i = 1; i <= 5; i++) {
+            vm.deal(address(uint160(i)), 2 ether);
             vm.prank(address(uint160(i)));
-            pool.addLiquidity{value: 4 ether}();
+            pool.addLiquidity{value: 1 ether}();
         }
 
         uint256 premium = factory.getPremium();
@@ -94,8 +114,6 @@ contract VeritTest is Test {
         VeritInstance instance = VeritInstance(
             factory.newInstance{value: premium}()
         );
-        // console.log(address(pool).balance);
-        // console.log(address(51).balance);
 
         vm.prank(user);
         address daoAddr = instance.claim(5 ether);
@@ -104,6 +122,60 @@ contract VeritTest is Test {
         vm.expectRevert(VeritDAO.Must_Be_DAO_Member.selector);
         vm.prank(address(70));
         dao.voteFor(3);
+    }
+
+    function testVotersCantVoteTwice() external {
+        for (uint256 i = 1; i <= 5; i++) {
+            vm.deal(address(uint160(i)), 2 ether);
+            vm.prank(address(uint160(i)));
+            pool.addLiquidity{value: 1 ether}();
+        }
+
+        uint256 premium = factory.getPremium();
+        address user = address(uint160(1000));
+        vm.deal(user, premium);
+        vm.prank(user);
+
+        VeritInstance instance = VeritInstance(
+            factory.newInstance{value: premium}()
+        );
+
+        vm.prank(user);
+        address daoAddr = instance.claim(5 ether);
+        VeritDAO dao = VeritDAO(daoAddr);
+
+        for (uint256 i = 1; i <= 5; i++) {
+            vm.prank(address(uint160(i)));
+            dao.voteFor(3);
+        }
+
+        vm.expectRevert(VeritDAO.Can_Only_Vote_Once.selector);
+        vm.prank(address(uint160(3)));
+        dao.voteAgainst();
+    }
+
+    function executeEntireProcess(
+        uint256 liquidity,
+        uint256 claimAmount,
+        address user
+    ) internal returns (bool, address) {
+        for (uint256 i = 48; i <= 62; i++) {
+            vm.deal(address(uint160(i)), 5 ether);
+            vm.prank(address(uint160(i)));
+            pool.addLiquidity{value: liquidity}();
+        }
+
+        uint256 premium = factory.getPremium();
+        vm.deal(user, premium);
+        vm.prank(user);
+
+        VeritInstance instance = VeritInstance(
+            factory.newInstance{value: premium}()
+        );
+
+        vm.prank(user);
+        address daoAddr = instance.claim(claimAmount);
+        VeritDAO dao = VeritDAO(daoAddr);
 
         for (uint256 i = 2; i <= 6; i++) {
             vm.prank(address(uint160(46 + i)));
@@ -125,15 +197,70 @@ contract VeritTest is Test {
             dao.voteFor(4);
         }
 
-        vm.expectRevert(VeritDAO.Can_Only_Vote_Once.selector);
-        vm.prank(address(uint160(48)));
-        dao.voteAgainst();
-
         vm.warp(dao.deadline() + 10 minutes);
-        vm.prank(address(instance));
-        bool result = dao.execute();
+        vm.prank(user);
+        bool result = instance.redeem();
+        return (result, address(instance));
+    }
 
+    function testProcessForAppropriateClaimAmount() external {
+        //claimer provides an appropriate claim amount
+
+        address user = address(uint160(1000));
+        (bool result, ) = executeEntireProcess(4 ether, 5 ether, user);
         assert(result);
-        console.log(address(user).balance);
+        assert(address(user).balance < 3 ether);
+        assert(address(user).balance > 2.8 ether);
+    }
+
+    function testProcessForExcessiveClaimAmount() external {
+        //claimer provides a claim amount greater than 10% of the pool balance
+
+        address user = address(uint160(1000));
+        (bool result, ) = executeEntireProcess(4 ether, 15 ether, user);
+        assert(result);
+        assert(address(user).balance < 6 ether);
+        assert(address(user).balance > 5.7 ether);
+    }
+
+    function testClaimerCantClaimTwice() external {
+        address user = address(uint160(1000));
+        (bool result, address instance) = executeEntireProcess(
+            4 ether,
+            5 ether,
+            user
+        );
+        assert(result);
+
+        vm.expectRevert(VeritInstance.AlreadyClaimed.selector);
+        vm.prank(user);
+        VeritInstance(instance).claim(5);
+
+        vm.expectRevert(VeritInstance.AlreadyClaimed.selector);
+        vm.prank(user);
+        VeritInstance(instance).redeem();
+    }
+
+    function testCannotExecuteDuringVotingPeriod() external {
+        address user = address(uint160(1000));
+        address provider = address(uint160(1001));
+        vm.deal(provider, 5 ether);
+
+        vm.prank(provider);
+        pool.addLiquidity{value: 4 ether}();
+
+        uint256 premium = factory.getPremium();
+        vm.deal(user, premium);
+        vm.startPrank(user);
+
+        VeritInstance instance = VeritInstance(
+            factory.newInstance{value: premium}()
+        );
+        instance.claim(5 ether);
+        vm.stopPrank();
+
+        vm.expectRevert(VeritDAO.Voting_Ongoing.selector);
+        vm.prank(user);
+        instance.redeem();
     }
 }

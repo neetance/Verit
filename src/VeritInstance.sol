@@ -53,7 +53,7 @@ contract VeritInstance {
         if (claimed) {
             revert AlreadyClaimed();
         }
-        if (block.timestamp < deadline) {
+        if (block.timestamp > deadline) {
             revert DeadlinePassed();
         }
 
